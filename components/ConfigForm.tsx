@@ -139,7 +139,8 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
       setIsFetchingManifest(true);
       setManifestError(null);
       
-      const basePath = './OBE';
+      const baseUrl = (import.meta.env.BASE_URL || './').replace(/\/$/, '');
+      const basePath = baseUrl ? `${baseUrl}/OBE` : './OBE';
       try {
           const response = await fetch(`${basePath}/manifest.json?t=${Date.now()}`);
           if (!response.ok) {
