@@ -97,6 +97,8 @@ The application prioritizes the following exact column headings (case-insensitiv
 | `CorrectAnswer(s)` | The correct letter(s). | `C` or `A,B` |
 | `Explanation` | The explanation. | `The reason C is correct...` |
 
+> **Starter Templates Available:** Pre-formatted Excel (`.xlsx`), SQLite (`.db`), and CSV starter templates are available in the [`templates/`](./templates/) directory to help you quickly build your own question banks.
+
 > **Note:** Backward compatibility is maintained for standard columns like `question_text`, `correct_answer`, `category`, etc., but the schema above is preferred for the best analytics experience.
 
 ### Special Question Types

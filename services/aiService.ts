@@ -17,8 +17,7 @@ export const saveApiKey = (provider: 'GEMINI' | 'OPENAI', key: string) => {
     if (typeof window === 'undefined') return;
     if (provider === 'GEMINI') localStorage.setItem(LS_GOOGLE_KEY, key);
     else localStorage.setItem(LS_OPENAI_KEY, key);
-    // Reload to ensure all components pick up the new key state
-    window.location.reload();
+    window.dispatchEvent(new CustomEvent('qm_key_updated', { detail: { provider } }));
 };
 
 export const clearApiKeys = () => {
@@ -152,11 +151,11 @@ const geminiDriver = {
         `;
 
         const response = await ai.models.generateContent({
-          model: 'gemini-3-pro-preview',
+          model: 'gemini-2.5-pro',
           contents: prompt,
           config: {
             maxOutputTokens: 6000,
-            thinkingConfig: { thinkingBudget: 4000 },
+            thinkingConfig: { thinkingBudget: 2000 },
             tools: useWebSearch ? [{ googleSearch: {} }] : []
           }
         });
@@ -190,7 +189,7 @@ const geminiDriver = {
         `;
 
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             responseMimeType: "application/json",
@@ -236,11 +235,11 @@ const geminiDriver = {
         `;
 
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
+          model: "gemini-2.5-pro",
           contents: prompt,
           config: {
             maxOutputTokens: 8000,
-            thinkingConfig: { thinkingBudget: 4000 }
+            thinkingConfig: { thinkingBudget: 2000 }
           }
         });
 

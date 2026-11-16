@@ -139,35 +139,26 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
       setIsFetchingManifest(true);
       setManifestError(null);
       
-      const attempts = [
-          { path: './OBE/manifest.json', base: './OBE' },
-          { path: 'OBE/manifest.json', base: 'OBE' },
-          { path: '/OBE/manifest.json', base: '/OBE' },
-          { path: 'public/OBE/manifest.json', base: 'public/OBE' },
-          { path: './obe/manifest.json', base: './obe' }
-      ];
-
-      for (const attempt of attempts) {
-          try {
-              let response = await fetch(attempt.path);
-              if (!response.ok) {
-                  response = await fetch(`${attempt.path}?t=${Date.now()}`);
-              }
-              if (response.ok) {
-                  const contentType = response.headers.get("content-type");
-                  if (contentType && contentType.includes("text/html")) continue; 
-                  
-                  const data = await response.json();
-                  const validSources = Array.isArray(data) ? data.filter((s: any) => !s.id.startsWith('_')) : [];
-                  setRemoteSources(validSources);
-                  setManifestBasePath(attempt.base);
-                  setIsFetchingManifest(false);
-                  return; 
-              }
-          } catch (e) { }
+      const basePath = './OBE';
+      try {
+          const response = await fetch(`${basePath}/manifest.json?t=${Date.now()}`);
+          if (!response.ok) {
+              throw new Error(`Server returned ${response.status} ${response.statusText}`);
+          }
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("text/html")) {
+              throw new Error("Invalid manifest file format (HTML received instead of JSON)");
+          }
+          const data = await response.json();
+          const validSources = Array.isArray(data) ? data.filter((s: any) => !s.id.startsWith('_')) : [];
+          setRemoteSources(validSources);
+          setManifestBasePath(basePath);
+      } catch (err: any) {
+          console.error("Error fetching manifest:", err);
+          setManifestError("Could not locate manifest.json. Ensure 'OBE' folder exists in public directory.");
+      } finally {
+          setIsFetchingManifest(false);
       }
-      setManifestError("Could not locate manifest.json. Ensure 'OBE' folder exists in public directory.");
-      setIsFetchingManifest(false);
   };
 
   useEffect(() => {
