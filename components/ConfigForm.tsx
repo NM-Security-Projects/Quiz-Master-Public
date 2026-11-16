@@ -195,7 +195,19 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                   }
                   
                   if (sourcesToMerge.length > 0) {
-                      const totalImported = await processAndMergeDatabases(sourcesToMerge);
+                      let totalImported = 0;
+                      try {
+                          totalImported = await processAndMergeDatabases(sourcesToMerge);
+                      } catch (err: any) {
+                          console.warn("Cached database failed to merge, purging corrupted cached items...", err);
+                          for (const src of sourcesToMerge) {
+                              await persistenceService.removeFromLibrary(src.id);
+                          }
+                          const freshLib = await persistenceService.getLibrary();
+                          setLibrary(freshLib);
+                          setSelectedSourceIds([]);
+                          return;
+                      }
                       setImportCount(totalImported);
                       if (onDbUpdate) onDbUpdate(totalImported);
 
@@ -372,17 +384,20 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
     onSimulate(maxConfig, simId);
   };
 
-  const handleToggleRemoteSource = async (source: RemoteSource) => {
+  const handleToggleRemoteSource = async (source: RemoteSource, forceRefresh = false) => {
       if (loadingSourceId === source.id) return;
 
       const existing = library.find(item => item.name === source.name);
       
-      if (existing) {
+      if (existing && !forceRefresh) {
           setSelectedSourceIds(prev => prev.includes(existing.id) ? prev.filter(x => x !== existing.id) : [...prev, existing.id]);
       } else {
           setLoadingSourceId(source.id);
           try {
-              let path = `${manifestBasePath}/${source.filename}`;
+              if (existing) {
+                  await persistenceService.removeFromLibrary(existing.id);
+              }
+              let path = `${manifestBasePath}/${source.filename}?t=${Date.now()}`;
               let response = await fetch(path);
               const contentType = response.headers.get("content-type");
               if (!response.ok) {
@@ -399,8 +414,8 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
               const file = new File([bytes], source.name, { type: 'application/x-sqlite3' });
               const newItem = await persistenceService.addToLibrary(file, bytes);
               
-              setLibrary(prev => [...prev, newItem]);
-              setSelectedSourceIds(prev => [...prev, newItem.id]);
+              setLibrary(prev => [...prev.filter(i => i.id !== existing?.id), newItem]);
+              setSelectedSourceIds(prev => [...prev.filter(id => id !== existing?.id), newItem.id]);
           } catch (e: any) {
               console.error(`Could not load ${source.filename}`, e);
               alert(`Failed to load database: ${source.filename}\n\nReason: ${e.message}\n\nPlease verify that '${source.filename}' exists in the '${manifestBasePath}' folder of your server.`);
@@ -648,7 +663,22 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                                                     </div>
                                                 )}
                                             </div>
-                                            {isSelected && <div className="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center shadow-lg"><Check size={12} strokeWidth={4} /></div>}
+                                            <div className="flex items-center gap-1.5 self-center">
+                                                {isLoaded && !isLoadingSource && (
+                                                    <span
+                                                        role="button"
+                                                        title="Re-download / update repository"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleToggleRemoteSource(source, true);
+                                                        }}
+                                                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors"
+                                                    >
+                                                        <RotateCcw size={14} />
+                                                    </span>
+                                                )}
+                                                {isSelected && <div className="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center shadow-lg"><Check size={12} strokeWidth={4} /></div>}
+                                            </div>
                                         </button>
                                     );
                                 })}
