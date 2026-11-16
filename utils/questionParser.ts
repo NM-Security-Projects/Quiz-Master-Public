@@ -65,8 +65,20 @@ export const parseMatchConfiguration = (question: Question): MatchConfig => {
   const lines = correctStr.replace(/\\n/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
   
   lines.forEach(line => {
-      // Split by comma
-      const parts = line.split(',').map(s => s.trim().replace(/['"]/g, '').toUpperCase());
+      // Split by comma, colon, hyphen, or dot (e.g. "1,A", "1.A", "1:A", "1-A")
+      let rawParts: string[] = [];
+      if (line.includes(',')) {
+          rawParts = line.split(',');
+      } else if (line.includes(':')) {
+          rawParts = line.split(':');
+      } else if (line.includes('-')) {
+          rawParts = line.split('-');
+      } else if (line.includes('.')) {
+          rawParts = line.split('.');
+      } else {
+          rawParts = [line];
+      }
+      const parts = rawParts.map(s => s.trim().replace(/['"]/g, '').toUpperCase());
       
       // We look for pairs. 
       // Logic: The first item in the pair goes Left, the second goes Right.

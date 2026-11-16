@@ -97,46 +97,59 @@ const App: React.FC = () => {
         
         await refreshSlots();
 
+        let totalRows = 0;
         if (bytes) {
           // Standardize schema using merge logic even for single DB
           // This ensures table is named 'questions' and columns are mapped
           await processAndMergeDatabases([{ id: 'user_manual_upload', name: 'User Database', bytes }]);
-          
-          // Re-calculate integrity is tricky on standardized DB, but basic row count is easy
-          const totalRows = getAbsoluteTotalCount();
-          setIntegrityReport({ totalRows, missingTextCount: 0 }); // Simplified for hydration
-
-          const session = await persistenceService.getSession();
-          if (session) {
-            setAppState(session.appState);
-            setQuizConfig(session.quizConfig);
-            setUserAnswers(session.userAnswers);
-            setQuizQuestions(session.quizQuestions);
-            setCurrentQuestionIndex(session.currentQuestionIndex);
-            setTotalQuestionsInDb(session.totalQuestionsInDb);
-            setSessionType(session.sessionType || 'STANDARD');
-            setIsOBEMode(session.isOBEMode || false);
-            setDomainStats(getDomainStats('all'));
-            // Restore correct tab based on stored session type or mode
-            if (session.isOBEMode) setActiveTab('book');
-            else setActiveTab('practice');
-          } else {
-            setTotalQuestionsInDb(totalRows);
-            setDomainStats(getDomainStats('all'));
-            setAppState(AppState.CONFIG);
-            setSessionType('STANDARD');
-          }
-          setIsHydrating(false);
-        } else {
-            // No DB found: Initialize empty state instead of loading default library
-            setTotalQuestionsInDb(0);
-            setDomainStats([]);
-            setAppState(AppState.CONFIG);
-            setSessionType('STANDARD');
-            setActiveTab('book');
-            setIsOBEMode(false);
-            setIsHydrating(false);
+          totalRows = getAbsoluteTotalCount();
+          setIntegrityReport({ totalRows, missingTextCount: 0 });
         }
+
+        const session = await persistenceService.getSession();
+        if (session) {
+          setAppState(session.appState);
+          setQuizConfig(session.quizConfig);
+          setUserAnswers(session.userAnswers);
+          setQuizQuestions(session.quizQuestions);
+          setCurrentQuestionIndex(session.currentQuestionIndex);
+          setTotalQuestionsInDb(session.totalQuestionsInDb);
+          setSessionType(session.sessionType || 'STANDARD');
+          setIsOBEMode(session.isOBEMode || false);
+          
+          if (bytes) {
+            setDomainStats(getDomainStats('all'));
+          } else if (session.quizConfig?.sourceIds && session.quizConfig.sourceIds.length > 0) {
+            const sources = [];
+            for (const sId of session.quizConfig.sourceIds) {
+              const sBytes = await persistenceService.getLibraryItemData(sId);
+              if (sBytes) sources.push({ id: sId, name: sId, bytes: sBytes });
+            }
+            if (sources.length > 0) {
+              await processAndMergeDatabases(sources);
+              setDomainStats(getDomainStats('all'));
+            }
+          }
+          
+          const isBook = session.isOBEMode || session.quizConfig?.marathonBookMode || session.quizConfig?.book || (session.quizConfig?.books && session.quizConfig.books.length > 0);
+          if (isBook) setActiveTab('book');
+          else setActiveTab('practice');
+        } else if (bytes) {
+          setTotalQuestionsInDb(totalRows);
+          setDomainStats(getDomainStats('all'));
+          setAppState(AppState.CONFIG);
+          setSessionType('STANDARD');
+          setActiveTab('practice');
+        } else {
+          // No active session or user DB: Default landing is Book Companion
+          setTotalQuestionsInDb(0);
+          setDomainStats([]);
+          setAppState(AppState.CONFIG);
+          setSessionType('STANDARD');
+          setActiveTab('book');
+          setIsOBEMode(false);
+        }
+        setIsHydrating(false);
       } catch (e) {
         console.error("Hydration failed", e);
         setIsHydrating(false);
@@ -577,7 +590,7 @@ const App: React.FC = () => {
           // If saving a journey session, redirect back to relevant tab based on mode
           if (isOBEMode || quizConfig?.marathonBookMode) setActiveTab('book');
           else setActiveTab('practice');
-      } else if (quizConfig?.book) {
+      } else if (quizConfig?.book || (quizConfig?.books && quizConfig.books.length > 0)) {
           setActiveTab('book');
       } else {
           setActiveTab('practice');
@@ -602,7 +615,7 @@ const App: React.FC = () => {
           setSessionType(s.sessionType || 'STANDARD');
           setIsOBEMode(s.isOBEMode || false);
           
-          if (s.isOBEMode || s.quizConfig?.marathonBookMode || s.quizConfig?.book) {
+          if (s.isOBEMode || s.quizConfig?.marathonBookMode || s.quizConfig?.book || (s.quizConfig?.books && s.quizConfig.books.length > 0)) {
               setActiveTab('book');
           } else {
               setActiveTab('practice');

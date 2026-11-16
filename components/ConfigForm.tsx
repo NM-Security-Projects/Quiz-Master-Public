@@ -778,7 +778,7 @@ export const ConfigForm: React.FC<ConfigFormProps> = ({
                             <div className="flex-grow border-t border-slate-100 dark:border-slate-800"></div>
                         </div>
 
-                        <Tooltip text="Start a Journey Mode session with ALL questions from the selected repositories. Question text will be HIDDEN (Book View)." align="center">
+                        <Tooltip text="Start a Journey Mode session with ALL questions from the selected repositories sequentially." align="center">
                             <button
                                 type="button"
                                 onClick={() => onStartMarathon(true, enableConfidence)}
