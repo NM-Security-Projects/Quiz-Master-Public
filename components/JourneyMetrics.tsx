@@ -47,16 +47,21 @@ export const JourneyMetrics: React.FC<JourneyMetricsProps> = ({ answers }) => {
             
             const node = domainMap.get(dName)!;
             node.total += 1;
+            const hasConfidence = ans.confidence !== null;
             const isConf = ans.confidence === 'high';
             
             if (ans.isCorrect) {
                 node.correct += 1;
-                if (isConf) node.mastery += 1;
-                else node.luckyGuess += 1;
+                if (hasConfidence) {
+                    if (isConf) node.mastery += 1;
+                    else node.luckyGuess += 1;
+                }
             } else {
                 node.incorrect += 1;
-                if (isConf) node.dangerZone += 1;
-                else node.knownGap += 1;
+                if (hasConfidence) {
+                    if (isConf) node.dangerZone += 1;
+                    else node.knownGap += 1;
+                }
             }
         });
     });

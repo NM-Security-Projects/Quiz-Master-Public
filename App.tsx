@@ -10,6 +10,7 @@ import { ReadmeModal } from './components/ReadmeModal';
 import { AppState, Question, QuizConfig, UserAnswer, DomainStat, ConfidenceLevel, SimMode, IntegrityReport, SessionType, SaveSlot } from './types';
 import { getQuestions, getDomainStats, initDatabase, getAbsoluteTotalCount, processAndMergeDatabases } from './services/sqliteService';
 import { persistenceService, PersistedSession } from './services/persistenceService';
+import { isMultiSelect } from './utils/questionParser';
 
 const PERSONA_INFO: Record<SimMode, { label: string, icon: any, desc: string, tech: string }> = {
   RANDOM: {
@@ -71,7 +72,7 @@ const App: React.FC = () => {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [hoveredPersona, setHoveredPersona] = useState<SimMode | null>(null);
   const [integrityReport, setIntegrityReport] = useState<IntegrityReport | null>(null);
-  const [activeTab, setActiveTab] = useState<'practice' | 'book'>('practice');
+  const [activeTab, setActiveTab] = useState<'practice' | 'book'>('book');
   const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
   const [showSlotSelection, setShowSlotSelection] = useState(false);
   const [isOBEMode, setIsOBEMode] = useState(false);
@@ -132,7 +133,7 @@ const App: React.FC = () => {
             setDomainStats([]);
             setAppState(AppState.CONFIG);
             setSessionType('STANDARD');
-            setActiveTab('practice');
+            setActiveTab('book');
             setIsOBEMode(false);
             setIsHydrating(false);
         }
@@ -295,7 +296,7 @@ const App: React.FC = () => {
     const targetDomain = specificDomain || inferredDomain;
 
     return questions.map(q => {
-        const isMultiSelect = /\[MULTI\]/i.test(q.question_text);
+        const isMulti = isMultiSelect(q);
         const choiceKeys = Object.keys(q.choices);
         const correctStr = (q.correct_answer || "").trim().toUpperCase();
         const correctKeys = correctStr.includes(',') ? correctStr.split(',').map(s => s.trim()) : [correctStr];
@@ -305,7 +306,7 @@ const App: React.FC = () => {
 
         const pickWrong = () => {
           const wrongOptions = choiceKeys.filter(k => !correctKeys.includes(k));
-          if (isMultiSelect) {
+          if (isMulti) {
             const count = Math.max(1, Math.floor(Math.random() * choiceKeys.length));
             const shuffled = [...choiceKeys].sort(() => 0.5 - Math.random());
             const picked = shuffled.slice(0, count);

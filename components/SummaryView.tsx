@@ -77,6 +77,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ answers, onRestart, is
   const [isAiLoadingMap, setIsAiLoadingMap] = useState<Record<string | number, boolean>>({});
   const [copiedMap, setCopiedMap] = useState<Record<string | number, boolean>>({});
   const [copiedIdMap, setCopiedIdMap] = useState<Record<string | number, boolean>>({});
+  const [useWebSearch, setUseWebSearch] = useState<boolean>(false);
 
   // Key Entry State
   const [showKeyInput, setShowKeyInput] = useState(false);
@@ -147,7 +148,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ answers, onRestart, is
 
   const handleAskAiForAnswer = async (ans: UserAnswer) => {
       setIsAiLoadingMap(prev => ({...prev, [ans.question.id]: true}));
-      const result = await getAIExplanation(ans.question, ans.selectedOption);
+      const result = await getAIExplanation(ans.question, ans.selectedOption, useWebSearch);
       if (result.text.includes("No valid API Key")) {
           setShowKeyInput(true);
       }
@@ -577,11 +578,22 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ answers, onRestart, is
                                                         <div className="bg-brand-50 dark:bg-brand-900/10 p-2 rounded-xl border border-brand-100 dark:border-brand-900/30 text-[11px]">
                                                             <div className="flex items-center justify-between mb-1">
                                                                 <div className="flex items-center gap-1.5 font-black uppercase tracking-widest text-[9px] text-brand-700 dark:text-brand-300"><Sparkles size={10} /> AI Deep Analysis</div>
-                                                                {ans.aiExplanation && (
-                                                                    <button onClick={() => handleCopyAi(ans)} className="text-[8px] font-black uppercase text-brand-400 hover:text-brand-700">
-                                                                        {copiedMap[ans.question.id] ? "Copied" : "Copy"}
-                                                                    </button>
-                                                                )}
+                                                                <div className="flex items-center gap-2">
+                                                                    <label className="flex items-center gap-1 cursor-pointer text-[8px] font-black uppercase text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 select-none">
+                                                                        <input 
+                                                                            type="checkbox" 
+                                                                            checked={useWebSearch} 
+                                                                            onChange={(e) => setUseWebSearch(e.target.checked)} 
+                                                                            className="w-3 h-3 rounded text-brand-600 focus:ring-0 cursor-pointer"
+                                                                        />
+                                                                        <Globe size={9} /> Web Grounding
+                                                                    </label>
+                                                                    {ans.aiExplanation && (
+                                                                        <button onClick={() => handleCopyAi(ans)} className="text-[8px] font-black uppercase text-brand-400 hover:text-brand-700">
+                                                                            {copiedMap[ans.question.id] ? "Copied" : "Copy"}
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                             {!ans.aiExplanation ? (
                                                                 <button 

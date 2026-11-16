@@ -178,5 +178,6 @@ export const checkAnswerCorrectness = (question: Question, selectedOption: strin
 
   // Single Choice
   const userSelection = Array.isArray(selectedOption) ? selectedOption[0] : selectedOption;
-  return userSelection === correctOptions[0];
+  if (!userSelection) return false;
+  return String(userSelection).trim().toUpperCase() === correctOptions[0];
 };

@@ -220,15 +220,17 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({
             isErrorFlagged: false
         };
 
-        setUserAnswers(prev => {
-            const filtered = prev.filter(a => a.questionId !== currentQuestion.id);
-            return [...filtered, answer];
-        });
-        
+        const isLastQuestion = currentIndex >= questions.length - 1;
+        const updatedAnswers = [...userAnswers.filter(a => a.questionId !== currentQuestion.id), answer];
+        setUserAnswers(updatedAnswers);
         setIsSubmitted(true);
 
         if (mode === 'BLIND') {
-            setTimeout(handleNext, 150);
+            if (isLastQuestion) {
+                setTimeout(() => onFinish(updatedAnswers), 150);
+            } else {
+                setTimeout(() => setCurrentIndex(prev => prev + 1), 150);
+            }
         }
     };
 
@@ -261,8 +263,14 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({
             confidence: null,
             isSkipped: true
         };
-        setUserAnswers(prev => [...prev.filter(a => a.questionId !== currentQuestion.id), answer]);
-        handleNext();
+        const updatedAnswers = [...userAnswers.filter(a => a.questionId !== currentQuestion.id), answer];
+        setUserAnswers(updatedAnswers);
+        
+        if (currentIndex < questions.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+        } else {
+            onFinish(updatedAnswers);
+        }
     };
 
     const handleFlagQuestion = async () => {
